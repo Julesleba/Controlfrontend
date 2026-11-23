@@ -61,7 +61,7 @@
   <div class="top">
     <div>
       <h1>SOL/USDT <span>Bot Console</span></h1>
-      <p>Live control • Bybit Testnet • Lagos (WAT) • Auto-refresh 15s</p>
+      <p>Live control • Binance Testnet • Lagos (WAT) • Auto-refresh 15s</p>
     </div>
     <div class="pill"><span id="liveDot" class="dot"></span><span id="pillStatus">Not connected</span></div>
   </div>
@@ -160,7 +160,7 @@
       const d=await apiFetch('/api/admin/dashboard');
       const pill=document.getElementById('pillStatus');
       const dot=document.getElementById('liveDot');
-      pill.textContent = `${d.status} • ${d.network==='BYBIT_LIVE'?'LIVE':'TESTNET'} • ${d.market.dateWAT||''}`;
+      pill.textContent = `${d.status} • ${d.network==='BINANCE_LIVE'?'LIVE': d.network==='BINANCE_TESTNET'?'TESTNET':d.network} • ${d.market.dateWAT||''}`;
       dot.className = 'dot ' + (d.status==='RUNNING' ? '' : 'paused');
 
       document.getElementById('mPrice').textContent = fmt(d.market.lastPrice);
