@@ -1,6 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
+<html lang="en"><head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SOL Bot - Admin</title>
@@ -24,6 +23,7 @@
     @media(max-width:700px){ .connect{grid-template-columns:1fr} }
     input, select { width:100%; padding:11px 12px; border-radius:12px; border:1px solid #2b3a52; background:#080c14; color:#fff; font-size:0.9rem; outline:none; }
     input:focus { border-color:var(--blue); }
+    input:disabled { opacity:.65; cursor:not-allowed; background:#0b1220; }
     button { border:0; cursor:pointer; padding:11px 14px; border-radius:12px; font-weight:800; font-size:0.9rem; color:#fff; transition:.15s; }
     button:active{ transform:scale(.98); }
     .b-blue{ background:linear-gradient(180deg,#2563eb,#1d4ed8); } .b-green{ background:linear-gradient(180deg,#16a34a,#15803d); } .b-amber{ background:linear-gradient(180deg,#d97706,#b45309); } .b-red{ background:linear-gradient(180deg,#dc2626,#b91c1c); } .b-ghost{ background:#1e293b; border:1px solid #334155; }
@@ -87,11 +87,12 @@
       <button class="b-red" onclick="panicSellConfirm()">🚨 Panic Sell</button>
     </div>
     <div class="config-grid">
-      <div><label>Trade Amount (USDT) - Fallback</label><input id="tradeAmountInput" type="number" step="0.5" min="5" value="5.5" /><div class="sub" style="margin:4px 0 0;">Live uses Dynamic: Free USDT x 0.99</div></div>
-      <div><label>Max Daily Loss (USDT)</label><input id="maxLossInput" type="number" step="0.05" min="0.1" value="0.45" /><div class="sub" style="margin:4px 0 0;">Stops at -$0.45 to keep balance above $5.00</div></div>
+      <div><label>Dashboard Total Amount (USDT) - Hybrid</label><input id="tradeAmountInput" type="number" step="0.5" min="5" value="5.5" oninput="updateAutoLossPreview()" /><div class="sub" style="margin:4px 0 0;">Buy = min(Dashboard, Free USDT x 0.99) - never deadlocks</div></div>
+      <div><label>Max Daily Loss (USDT) - AUTO 8%</label><input id="maxLossInput" type="number" step="0.05" min="0.1" value="0.44" disabled /><div class="sub" style="margin:4px 0 0;">Auto = Amount x 8% - you don't type this, backend sets it</div></div>
       <div><label>Bounce Filter</label><div class="toggle"><input id="bounceInput" type="checkbox" checked /> <span>Require bounce tick</span></div></div>
       <button class="b-blue" onclick="updateConfig()">Save Amount & Risk</button>
     </div>
+    <div class="sub" style="margin:10px 0 0;">Trend Filter: ON • Price must be &gt; 5-day avg (last 5 finished days, today excluded) • 30s poll • Max 2 losses in a row • Unlimited trades 24/7</div>
   </div>
 
   <div id="posBanner" class="pos-banner flat"><span>No open position</span><span>-</span></div>
@@ -101,13 +102,14 @@
     <div class="grid">
       <div class="stat blue"><div class="l">SOL Price</div><div class="v" id="mPrice">-</div><div class="s" id="mAvg">Avg: -</div></div>
       <div class="stat violet"><div class="l">Buy Target - Trailing -2%</div><div class="v" id="mBuyTarget">-</div><div class="s" id="mRef">Ref: -</div></div>
-      <div class="stat"><div class="l">Trade Size - Dynamic</div><div class="v" id="mTradeAmt">-</div><div class="s">Free USDT x 0.99</div></div>
+      <div class="stat"><div class="l">Trade Size - Hybrid</div><div class="v" id="mTradeAmt">-</div><div class="s">min(Dashboard, Free x 0.99)</div></div>
       <div class="stat"><div class="l">Trades Today</div><div class="v" id="mTrades">-</div><div class="s" id="mWL">W:0 L:0</div></div>
       <div class="stat" id="pnlCard"><div class="l">Daily Net PnL</div><div class="v" id="mPnl">-</div><div class="s" id="mCooldown">Cooldown: -</div></div>
       <div class="stat"><div class="l">In Position</div><div class="v" id="mPos">-</div><div class="s" id="mEntry">Entry: -</div></div>
       <div class="stat"><div class="l">Peak / Trail</div><div class="v" id="mTrail">-</div><div class="s" id="mTrailSub">-</div></div>
       <div class="stat"><div class="l">Hard TP / SL</div><div class="v" id="mTPSL">-</div><div class="s">+5% / -3% from ACTUAL fill</div></div>
     </div>
+    <div class="sub" style="margin:10px 0 0;" id="autoLossLine">Auto Daily Loss Limit: - • Trend Filter: Price &gt; 5-day avg (finished days)</div>
   </div>
 
   <!-- NEW: Daily + Weekly Reports - matches new backend -->
@@ -169,6 +171,12 @@
     if(!baseUrl || !secret){ setMsg('Enter both Backend URL and ADMIN_SECRET.', true); return null; }
     return { baseUrl, secret };
   }
+  // FIXED: Auto Daily Loss preview = Amount x 8% - matches backend calcDailyLossFromAmount()
+  function updateAutoLossPreview(){
+    const amt = Number(document.getElementById('tradeAmountInput').value || 0);
+    const auto = Number((amt * 0.08).toFixed(2));
+    document.getElementById('maxLossInput').value = auto;
+  }
   async function saveCredsAndLoad(){
     const c=getCreds(); if(!c) return;
     localStorage.setItem('bot_api_url', c.baseUrl);
@@ -222,17 +230,21 @@
       document.getElementById('mTrailSub').textContent = inPos ? (d.position.trailingActive ? '● TRAILING ACTIVE' : '○ Waiting +2.5%') : '-';
       document.getElementById('mTPSL').textContent = inPos ? `${fmt(d.position.takeProfitPrice,2)} / ${fmt(d.position.stopLossPrice,2)}` : '-';
 
+      // FIXED: Show backend Auto Daily Loss (8% of Dashboard Amount) - not old $0.45
+      document.getElementById('autoLossLine').textContent = `Auto Daily Loss Limit: $${Number(d.config.maxDailyLossUsdt||0).toFixed(2)} (8% of $${Number(d.config.tradeAmountUsdt||0).toFixed(2)}) • Trend Filter: Price > 5-day avg (finished days) • Hybrid Buy: min(Dashboard, Free x 0.99)`;
+
       const banner=document.getElementById('posBanner');
       if(inPos){
         banner.className='pos-banner';
         banner.innerHTML=`<span><b>Holding ${d.position.purchasedQty} SOL</b> @ ${fmt(d.position.entryPrice)} • Peak ${fmt(d.position.highestPriceSinceEntry)}</span><span>${d.position.trailingActive?'Trailing ON':'Trail waiting'}</span>`;
       } else {
         banner.className='pos-banner flat';
-        banner.innerHTML=`<span>No open position — waiting for -2% dip from trailing ref</span><span>Target ${fmt(d.market.buyTargetPrice)}</span>`;
+        banner.innerHTML=`<span>No open position — waiting for -2% dip from trailing ref + trend filter</span><span>Target ${fmt(d.market.buyTargetPrice)}</span>`;
       }
 
       if(!isTyping()){
         document.getElementById('tradeAmountInput').value = d.config.tradeAmountUsdt;
+        // FIXED: Max Loss is AUTO from backend, not typed - keep it in sync, don't let user edit it
         document.getElementById('maxLossInput').value = d.config.maxDailyLossUsdt;
         document.getElementById('bounceInput').checked = !!d.config.requireBounceTick;
       }
@@ -271,7 +283,7 @@
         tbody.innerHTML=d.trades.map(t=>`<tr><td>${t.tradeNumber ?? t.id}</td><td>${t.date||''}</td><td>${fmt(t.entryPrice)}</td><td>${fmt(t.exitPrice)}</td><td>${t.qty}</td><td class="${t.pnlUsdt>=0?'win':'loss'}">${t.pnlUsdt>=0?'+':''}$${Number(t.pnlUsdt).toFixed(4)}</td><td><span class="badge ${t.outcome==='WIN'?'win':'loss'}">${t.outcome}</span></td><td>${t.reason||''}</td></tr>`).join('');
       }
       document.getElementById('logsBox').textContent=(d.logs||[]).join('\n')||'No logs yet.';
-      setMsg(`Synced at ${new Date().toLocaleTimeString()} • ${d.network} • 24/7 • Max Loss $0.45`);
+      setMsg(`Synced at ${new Date().toLocaleTimeString()} • ${d.network} • 24/7 • Auto Daily Loss $${Number(d.config.maxDailyLossUsdt||0).toFixed(2)} (8%)`);
     }catch(e){ setMsg(e.message, true); }
   }
 
@@ -280,9 +292,9 @@
   }
   async function updateConfig(){
     const tradeAmountUsdt=Number(document.getElementById('tradeAmountInput').value);
-    const maxDailyLossUsdt=Number(document.getElementById('maxLossInput').value);
     const requireBounceTick=document.getElementById('bounceInput').checked;
-    try{ const r=await apiFetch('/api/admin/config','POST',{tradeAmountUsdt,maxDailyLossUsdt,requireBounceTick}); setMsg(r.message||'Config updated'); await loadDashboard(); }catch(e){ setMsg(e.message,true); }
+    // FIXED: Do NOT send maxDailyLossUsdt - backend auto-calculates it as Amount x 8%. Sending it was ignored and confused users.
+    try{ const r=await apiFetch('/api/admin/config','POST',{tradeAmountUsdt,requireBounceTick}); setMsg(r.message||'Config updated'); await loadDashboard(); }catch(e){ setMsg(e.message,true); }
   }
   async function panicSellConfirm(){ if(!confirm('Sell open SOL position immediately at market?')) return; await callAction('/api/admin/panic-sell'); }
 
