@@ -280,4 +280,26 @@
       if(!d.trades || d.trades.length===0){
         tbody.innerHTML='<tr><td colspan="8">No closed trades yet.</td></tr>';
       } else {
-        tbody.innerHTML=d.trades.map(t=>`<tr><td>${t.tradeNumber ?? t.id}</td><td>${t.date||''}</td><td>${fmt(t.entryPrice)}</td><td>${fmt(t.exitPrice)}</td><td>${t.qty}</td><td class="${t.pnlUsdt>=0?'win
+        tbody.innerHTML=d.trades.map(t=>`<tr><td>${t.tradeNumber ?? t.id}</td><td>${t.date||''}</td><td>${fmt(t.entryPrice)}</td><td>${fmt(t.exitPrice)}</td><td>${t.qty}</td><td class="${t.pnlUsdt>=0?'win':'loss'}">${t.pnlUsdt>=0?'+':''}$${Number(t.pnlUsdt).toFixed(4)}</td><td><span class="badge ${t.outcome==='WIN'?'win':'loss'}">${t.outcome}</span></td><td>${t.reason||''}</td></tr>`).join('');
+      }
+      document.getElementById('logsBox').textContent=(d.logs||[]).join('\n')||'No logs yet.';
+      setMsg(`Synced at ${new Date().toLocaleTimeString()} • ${d.network} • 24/7 • Sell Fast V5 • 10m Trend • Auto Daily Loss $${Number(d.config.maxDailyLossUsdt||0).toFixed(2)} (8%)`);
+    }catch(e){ setMsg(e.message, true); }
+  }
+
+  async function callAction(path){
+    try{ const r=await apiFetch(path,'POST'); setMsg(r.message||'Done'); await loadDashboard(); }catch(e){ setMsg(e.message,true); }
+  }
+  async function updateConfig(){
+    const tradeAmountUsdt=Number(document.getElementById('tradeAmountInput').value);
+    const requireBounceTick=document.getElementById('bounceInput').checked;
+    // FIXED: Do NOT send maxDailyLossUsdt - backend auto-calculates it as Amount x 8%. Sending it was ignored and confused users.
+    try{ const r=await apiFetch('/api/admin/config','POST',{tradeAmountUsdt,requireBounceTick}); setMsg(r.message||'Config updated'); await loadDashboard(); }catch(e){ setMsg(e.message,true); }
+  }
+  async function panicSellConfirm(){ if(!confirm('Sell open SOL position immediately at market?')) return; await callAction('/api/admin/panic-sell'); }
+
+  if(apiUrlEl.value && secretEl.value) loadDashboard();
+  setInterval(()=>{ if(apiUrlEl.value && secretEl.value) loadDashboard(); }, 15000);
+</script>
+</body>
+</html>
