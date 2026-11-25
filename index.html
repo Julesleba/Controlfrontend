@@ -63,7 +63,7 @@
   <div class="top">
     <div>
       <h1>SOL/USDT <span>Bot Console</span></h1>
-      <p>Live control • Binance Testnet • Lagos (WAT) • 24/7 - No Sleep • Auto-refresh 15s • Sell Fast V3 • 10m Trend</p>
+      <p>Live control • Binance Testnet • Lagos (WAT) • 24/7 - No Sleep • Auto-refresh 15s • Sell Fast V5 • 10m Trend</p>
     </div>
     <div class="pill"><span id="liveDot" class="dot"></span><span id="pillStatus">Not connected</span></div>
   </div>
@@ -92,7 +92,7 @@
       <div><label>Bounce Filter</label><div class="toggle"><input id="bounceInput" type="checkbox" checked /> <span>Require bounce tick</span></div></div>
       <button class="b-blue" onclick="updateConfig()">Save Amount & Risk</button>
     </div>
-    <div class="sub" style="margin:10px 0 0;">Sell Fast V3 • TP +2.2% • SL -0.8% • Trail Start +2.2% • Trail Pullback 0.5% • 1 Win (+$0.110) covers 2 Losses (-$0.055 x 2) • Cooldown 5m WATCH • Trend Filter: ON • Price must be &gt; 10m avg (last 20 polls, 30s each) • 30s poll • Max 4 losses in a row • Unlimited trades 24/7</div>
+    <div class="sub" style="margin:10px 0 0;">Sell Fast V5 • TP +2.2% (backup) • SL -1.0% • Trail Start +1.2% • Trail Pullback 0.5% • 1 Win (+$0.110) covers 1.6 Losses (-$0.066) • Cooldown 5m WATCH • Trend Filter: ON • Price must be &gt; 10m avg (last 20 polls, 30s each) • 30s poll • Max 4 losses in a row • Unlimited trades 24/7</div>
   </div>
 
   <div id="posBanner" class="pos-banner flat"><span>No open position</span><span>-</span></div>
@@ -107,7 +107,7 @@
       <div class="stat" id="pnlCard"><div class="l">Daily Net PnL</div><div class="v" id="mPnl">-</div><div class="s" id="mCooldown">Cooldown: -</div></div>
       <div class="stat"><div class="l">In Position</div><div class="v" id="mPos">-</div><div class="s" id="mEntry">Entry: -</div></div>
       <div class="stat"><div class="l">Peak / Trail</div><div class="v" id="mTrail">-</div><div class="s" id="mTrailSub">-</div></div>
-      <div class="stat"><div class="l">Hard TP / SL</div><div class="v" id="mTPSL">-</div><div class="s">+2.2% / -0.8% from ACTUAL fill • Trail 2.2% / 0.5%</div></div>
+      <div class="stat"><div class="l">Hard TP / SL</div><div class="v" id="mTPSL">-</div><div class="s">+2.2% / -1.0% from ACTUAL fill • Trail 1.2% / 0.5%</div></div>
     </div>
     <div class="sub" style="margin:10px 0 0;" id="autoLossLine">Auto Daily Loss Limit: - • Trend Filter: Price &gt; 10m avg (last 20 polls)</div>
   </div>
@@ -201,7 +201,7 @@
       const d=await apiFetch('/api/admin/dashboard');
       const pill=document.getElementById('pillStatus');
       const dot=document.getElementById('liveDot');
-      pill.textContent = `${d.status} • ${d.network==='BINANCE_LIVE'?'LIVE': d.network==='BINANCE_TESTNET'?'TESTNET':d.network} • ${d.market.dateWAT||''} • 24/7 • Sell Fast V3 • 10m Trend`;
+      pill.textContent = `${d.status} • ${d.network==='BINANCE_LIVE'?'LIVE': d.network==='BINANCE_TESTNET'?'TESTNET':d.network} • ${d.market.dateWAT||''} • 24/7 • Sell Fast V5 • 10m Trend`;
       dot.className = 'dot ' + (d.status==='RUNNING' ? '' : 'paused');
 
       document.getElementById('mPrice').textContent = fmt(d.market.lastPrice);
@@ -227,16 +227,16 @@
       document.getElementById('mPos').className = 'v ' + (inPos?'win':'');
       document.getElementById('mEntry').textContent = inPos ? `Entry (actual fill): ${fmt(d.position.entryPrice)} • Qty ${d.position.purchasedQty}` : 'Entry: -';
       document.getElementById('mTrail').textContent = inPos ? fmt(d.position.highestPriceSinceEntry) : '-';
-      document.getElementById('mTrailSub').textContent = inPos ? (d.position.trailingActive ? '● TRAILING ACTIVE' : '○ Waiting +2.2%') : '-';
+      document.getElementById('mTrailSub').textContent = inPos ? (d.position.trailingActive ? '● TRAILING ACTIVE' : '○ Waiting +1.2%') : '-';
       document.getElementById('mTPSL').textContent = inPos ? `${fmt(d.position.takeProfitPrice,2)} / ${fmt(d.position.stopLossPrice,2)}` : '-';
 
       // FIXED: Show backend Auto Daily Loss (8% of Dashboard Amount) - not old $0.45
-      document.getElementById('autoLossLine').textContent = `Sell Fast V3: TP +2.2% • SL -0.8% • Trail 2.2% / 0.5% • Cooldown 5m WATCH • Auto Daily Loss Limit: $${Number(d.config.maxDailyLossUsdt||0).toFixed(2)} (8% of $${Number(d.config.tradeAmountUsdt||0).toFixed(2)}) • Trend Filter: Price > 10m avg (last 20 polls, 30s each) • Hybrid Buy: min(Dashboard, Free x 0.99)`;
+      document.getElementById('autoLossLine').textContent = `Sell Fast V5: TP +2.2% (backup) • SL -1.0% • Trail 1.2% / 0.5% • Cooldown 5m WATCH • Auto Daily Loss Limit: $${Number(d.config.maxDailyLossUsdt||0).toFixed(2)} (8% of $${Number(d.config.tradeAmountUsdt||0).toFixed(2)}) • Trend Filter: Price > 10m avg (last 20 polls, 30s each) • Hybrid Buy: min(Dashboard, Free x 0.99)`;
 
       const banner=document.getElementById('posBanner');
       if(inPos){
         banner.className='pos-banner';
-        banner.innerHTML=`<span><b>Holding ${d.position.purchasedQty} SOL</b> @ ${fmt(d.position.entryPrice)} • Peak ${fmt(d.position.highestPriceSinceEntry)}</span><span>${d.position.trailingActive?'Trailing ON':'Trail waiting +2.2%'}</span>`;
+        banner.innerHTML=`<span><b>Holding ${d.position.purchasedQty} SOL</b> @ ${fmt(d.position.entryPrice)} • Peak ${fmt(d.position.highestPriceSinceEntry)}</span><span>${d.position.trailingActive?'Trailing ON':'Trail waiting +1.2%'}</span>`;
       } else {
         banner.className='pos-banner flat';
         banner.innerHTML=`<span>No open position — waiting for -2% dip from trailing ref + 10m trend filter</span><span>Target ${fmt(d.market.buyTargetPrice)}</span>`;
@@ -280,26 +280,4 @@
       if(!d.trades || d.trades.length===0){
         tbody.innerHTML='<tr><td colspan="8">No closed trades yet.</td></tr>';
       } else {
-        tbody.innerHTML=d.trades.map(t=>`<tr><td>${t.tradeNumber ?? t.id}</td><td>${t.date||''}</td><td>${fmt(t.entryPrice)}</td><td>${fmt(t.exitPrice)}</td><td>${t.qty}</td><td class="${t.pnlUsdt>=0?'win':'loss'}">${t.pnlUsdt>=0?'+':''}$${Number(t.pnlUsdt).toFixed(4)}</td><td><span class="badge ${t.outcome==='WIN'?'win':'loss'}">${t.outcome}</span></td><td>${t.reason||''}</td></tr>`).join('');
-      }
-      document.getElementById('logsBox').textContent=(d.logs||[]).join('\n')||'No logs yet.';
-      setMsg(`Synced at ${new Date().toLocaleTimeString()} • ${d.network} • 24/7 • Sell Fast V3 • 10m Trend • Auto Daily Loss $${Number(d.config.maxDailyLossUsdt||0).toFixed(2)} (8%)`);
-    }catch(e){ setMsg(e.message, true); }
-  }
-
-  async function callAction(path){
-    try{ const r=await apiFetch(path,'POST'); setMsg(r.message||'Done'); await loadDashboard(); }catch(e){ setMsg(e.message,true); }
-  }
-  async function updateConfig(){
-    const tradeAmountUsdt=Number(document.getElementById('tradeAmountInput').value);
-    const requireBounceTick=document.getElementById('bounceInput').checked;
-    // FIXED: Do NOT send maxDailyLossUsdt - backend auto-calculates it as Amount x 8%. Sending it was ignored and confused users.
-    try{ const r=await apiFetch('/api/admin/config','POST',{tradeAmountUsdt,requireBounceTick}); setMsg(r.message||'Config updated'); await loadDashboard(); }catch(e){ setMsg(e.message,true); }
-  }
-  async function panicSellConfirm(){ if(!confirm('Sell open SOL position immediately at market?')) return; await callAction('/api/admin/panic-sell'); }
-
-  if(apiUrlEl.value && secretEl.value) loadDashboard();
-  setInterval(()=>{ if(apiUrlEl.value && secretEl.value) loadDashboard(); }, 15000);
-</script>
-</body>
-</html>
+        tbody.innerHTML=d.trades.map(t=>`<tr><td>${t.tradeNumber ?? t.id}</td><td>${t.date||''}</td><td>${fmt(t.entryPrice)}</td><td>${fmt(t.exitPrice)}</td><td>${t.qty}</td><td class="${t.pnlUsdt>=0?'win
