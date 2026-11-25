@@ -63,7 +63,7 @@
   <div class="top">
     <div>
       <h1>SOL/USDT <span>Bot Console</span></h1>
-      <p>Live control • Binance Testnet • Lagos (WAT) • 24/7 - No Sleep • Auto-refresh 15s • Sell Fast V3</p>
+      <p>Live control • Binance Testnet • Lagos (WAT) • 24/7 - No Sleep • Auto-refresh 15s • Sell Fast V3 • 10m Trend</p>
     </div>
     <div class="pill"><span id="liveDot" class="dot"></span><span id="pillStatus">Not connected</span></div>
   </div>
@@ -92,7 +92,7 @@
       <div><label>Bounce Filter</label><div class="toggle"><input id="bounceInput" type="checkbox" checked /> <span>Require bounce tick</span></div></div>
       <button class="b-blue" onclick="updateConfig()">Save Amount & Risk</button>
     </div>
-    <div class="sub" style="margin:10px 0 0;">Sell Fast V3 • TP +2.2% • SL -0.8% • Trail Start +2.2% • Trail Pullback 0.5% • 1 Win (+$0.110) covers 2 Losses (-$0.055 x 2) • Cooldown 5m WATCH • Trend Filter: ON • Price must be &gt; 5-day avg (last 5 finished days, today excluded) • 30s poll • Max 4 losses in a row • Unlimited trades 24/7</div>
+    <div class="sub" style="margin:10px 0 0;">Sell Fast V3 • TP +2.2% • SL -0.8% • Trail Start +2.2% • Trail Pullback 0.5% • 1 Win (+$0.110) covers 2 Losses (-$0.055 x 2) • Cooldown 5m WATCH • Trend Filter: ON • Price must be &gt; 10m avg (last 20 polls, 30s each) • 30s poll • Max 4 losses in a row • Unlimited trades 24/7</div>
   </div>
 
   <div id="posBanner" class="pos-banner flat"><span>No open position</span><span>-</span></div>
@@ -100,7 +100,7 @@
   <div class="card">
     <h3>📊 Live Snapshot</h3>
     <div class="grid">
-      <div class="stat blue"><div class="l">SOL Price</div><div class="v" id="mPrice">-</div><div class="s" id="mAvg">Avg: -</div></div>
+      <div class="stat blue"><div class="l">SOL Price</div><div class="v" id="mPrice">-</div><div class="s" id="mAvg">Avg (10m): -</div></div>
       <div class="stat violet"><div class="l">Buy Target - Trailing -2%</div><div class="v" id="mBuyTarget">-</div><div class="s" id="mRef">Ref: -</div></div>
       <div class="stat"><div class="l">Trade Size - Hybrid</div><div class="v" id="mTradeAmt">-</div><div class="s">min(Dashboard, Free x 0.99)</div></div>
       <div class="stat"><div class="l">Trades Today</div><div class="v" id="mTrades">-</div><div class="s" id="mWL">W:0 L:0</div></div>
@@ -109,7 +109,7 @@
       <div class="stat"><div class="l">Peak / Trail</div><div class="v" id="mTrail">-</div><div class="s" id="mTrailSub">-</div></div>
       <div class="stat"><div class="l">Hard TP / SL</div><div class="v" id="mTPSL">-</div><div class="s">+2.2% / -0.8% from ACTUAL fill • Trail 2.2% / 0.5%</div></div>
     </div>
-    <div class="sub" style="margin:10px 0 0;" id="autoLossLine">Auto Daily Loss Limit: - • Trend Filter: Price &gt; 5-day avg (finished days)</div>
+    <div class="sub" style="margin:10px 0 0;" id="autoLossLine">Auto Daily Loss Limit: - • Trend Filter: Price &gt; 10m avg (last 20 polls)</div>
   </div>
 
   <!-- NEW: Daily + Weekly Reports - matches new backend -->
@@ -201,11 +201,11 @@
       const d=await apiFetch('/api/admin/dashboard');
       const pill=document.getElementById('pillStatus');
       const dot=document.getElementById('liveDot');
-      pill.textContent = `${d.status} • ${d.network==='BINANCE_LIVE'?'LIVE': d.network==='BINANCE_TESTNET'?'TESTNET':d.network} • ${d.market.dateWAT||''} • 24/7 • Sell Fast V3`;
+      pill.textContent = `${d.status} • ${d.network==='BINANCE_LIVE'?'LIVE': d.network==='BINANCE_TESTNET'?'TESTNET':d.network} • ${d.market.dateWAT||''} • 24/7 • Sell Fast V3 • 10m Trend`;
       dot.className = 'dot ' + (d.status==='RUNNING' ? '' : 'paused');
 
       document.getElementById('mPrice').textContent = fmt(d.market.lastPrice);
-      document.getElementById('mAvg').textContent = 'Avg (20): ' + fmt(d.market.rollingAvg);
+      document.getElementById('mAvg').textContent = 'Avg (10m): ' + fmt(d.market.rollingAvg);
       document.getElementById('mBuyTarget').textContent = fmt(d.market.buyTargetPrice);
       document.getElementById('mRef').textContent = 'Trailing Ref: ' + fmt(d.market.referencePrice);
       document.getElementById('mTradeAmt').textContent = '$' + d.config.tradeAmountUsdt;
@@ -231,7 +231,7 @@
       document.getElementById('mTPSL').textContent = inPos ? `${fmt(d.position.takeProfitPrice,2)} / ${fmt(d.position.stopLossPrice,2)}` : '-';
 
       // FIXED: Show backend Auto Daily Loss (8% of Dashboard Amount) - not old $0.45
-      document.getElementById('autoLossLine').textContent = `Sell Fast V3: TP +2.2% • SL -0.8% • Trail 2.2% / 0.5% • Cooldown 5m WATCH • Auto Daily Loss Limit: $${Number(d.config.maxDailyLossUsdt||0).toFixed(2)} (8% of $${Number(d.config.tradeAmountUsdt||0).toFixed(2)}) • Trend Filter: Price > 5-day avg (finished days) • Hybrid Buy: min(Dashboard, Free x 0.99)`;
+      document.getElementById('autoLossLine').textContent = `Sell Fast V3: TP +2.2% • SL -0.8% • Trail 2.2% / 0.5% • Cooldown 5m WATCH • Auto Daily Loss Limit: $${Number(d.config.maxDailyLossUsdt||0).toFixed(2)} (8% of $${Number(d.config.tradeAmountUsdt||0).toFixed(2)}) • Trend Filter: Price > 10m avg (last 20 polls, 30s each) • Hybrid Buy: min(Dashboard, Free x 0.99)`;
 
       const banner=document.getElementById('posBanner');
       if(inPos){
@@ -239,7 +239,7 @@
         banner.innerHTML=`<span><b>Holding ${d.position.purchasedQty} SOL</b> @ ${fmt(d.position.entryPrice)} • Peak ${fmt(d.position.highestPriceSinceEntry)}</span><span>${d.position.trailingActive?'Trailing ON':'Trail waiting +2.2%'}</span>`;
       } else {
         banner.className='pos-banner flat';
-        banner.innerHTML=`<span>No open position — waiting for -2% dip from trailing ref + trend filter</span><span>Target ${fmt(d.market.buyTargetPrice)}</span>`;
+        banner.innerHTML=`<span>No open position — waiting for -2% dip from trailing ref + 10m trend filter</span><span>Target ${fmt(d.market.buyTargetPrice)}</span>`;
       }
 
       if(!isTyping()){
@@ -283,7 +283,7 @@
         tbody.innerHTML=d.trades.map(t=>`<tr><td>${t.tradeNumber ?? t.id}</td><td>${t.date||''}</td><td>${fmt(t.entryPrice)}</td><td>${fmt(t.exitPrice)}</td><td>${t.qty}</td><td class="${t.pnlUsdt>=0?'win':'loss'}">${t.pnlUsdt>=0?'+':''}$${Number(t.pnlUsdt).toFixed(4)}</td><td><span class="badge ${t.outcome==='WIN'?'win':'loss'}">${t.outcome}</span></td><td>${t.reason||''}</td></tr>`).join('');
       }
       document.getElementById('logsBox').textContent=(d.logs||[]).join('\n')||'No logs yet.';
-      setMsg(`Synced at ${new Date().toLocaleTimeString()} • ${d.network} • 24/7 • Sell Fast V3 • Auto Daily Loss $${Number(d.config.maxDailyLossUsdt||0).toFixed(2)} (8%)`);
+      setMsg(`Synced at ${new Date().toLocaleTimeString()} • ${d.network} • 24/7 • Sell Fast V3 • 10m Trend • Auto Daily Loss $${Number(d.config.maxDailyLossUsdt||0).toFixed(2)} (8%)`);
     }catch(e){ setMsg(e.message, true); }
   }
 
