@@ -38,18 +38,20 @@
     @media(max-width:700px){ .grid{grid-template-columns:1fr 1fr} }
     .stat { background:var(--card2); border:1px solid #1e293b; border-radius:16px; padding:13px; position:relative; overflow:hidden; }
     .stat::after{ content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:#334155; }
-    .stat.green::after{ background:var(--green); } .stat.red::after{ background:var(--red); } .stat.violet::after{ background:var(--violet); } .stat.blue::after{ background:var(--blue); }
+    .stat.green::after{ background:var(--green); } .stat.red::after{ background:var(--red); } .stat.violet::after{ background:var(--violet); } .stat.blue::after{ background:var(--blue); } .stat.amber::after{ background:var(--amber); }
     .stat .l { font-size:0.72rem; color:var(--muted); font-weight:700; letter-spacing:.05em; text-transform:uppercase; }
     .stat .v { font-size:1.18rem; font-weight:900; margin-top:5px; line-height:1.1; word-break:break-word; }
     .stat .s { font-size:0.78rem; color:var(--muted); margin-top:4px; }
     .win{ color:var(--green); } .loss{ color:var(--red); }
     .pos-banner { display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; background:linear-gradient(90deg, rgba(34,197,94,.15), rgba(34,197,94,.05)); border:1px solid rgba(34,197,94,.35); border-radius:14px; padding:12px 14px; margin-bottom:12px; }
     .pos-banner.flat { background:rgba(148,163,184,.08); border-color:#334155; }
+    .pos-banner.red { background:linear-gradient(90deg, rgba(239,68,68,.15), rgba(239,68,68,.05)); border-color:rgba(239,68,68,.35); }
+    .pos-banner.amber { background:linear-gradient(90deg, rgba(245,158,11,.15), rgba(245,158,11,.05)); border-color:rgba(245,158,11,.35); }
     table { width:100%; border-collapse:collapse; font-size:0.85rem; min-width:640px; }
     th, td { text-align:left; padding:9px 8px; border-bottom:1px solid #1e293b; white-space:nowrap; }
     th { color:var(--muted); font-size:0.72rem; letter-spacing:.06em; text-transform:uppercase; }
     .badge { padding:4px 8px; border-radius:999px; font-size:0.75rem; font-weight:800; }
-    .badge.win{ background:rgba(34,197,94,.15); color:#4ade80; } .badge.loss{ background:rgba(239,68,68,.15); color:#f87171; }
+    .badge.win{ background:rgba(34,197,94,.15); color:#4ade80; } .badge.loss{ background:rgba(239,68,68,.15); color:#f87171; } .badge.amber{ background:rgba(245,158,11,.15); color:#fbbf24; } .badge.grey{ background:rgba(148,163,184,.15); color:#cbd5e1; }
     .logs { background:#05070c; border:1px solid #1e293b; border-radius:12px; padding:12px; max-height:260px; overflow-y:auto; font-family:ui-monospace, monospace; font-size:0.78rem; line-height:1.5; white-space:pre-wrap; word-break:break-word; }
     .msg { font-size:0.85rem; margin-top:10px; color:#93c5fd; min-height:18px; }
     .row2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
@@ -97,6 +99,34 @@
 
   <div id="posBanner" class="pos-banner flat"><span>No open position</span><span>-</span></div>
 
+  <!-- NEW BOX 1: LIVE PROFIT - ALWAYS VISIBLE, NEVER DISAPPEARS -->
+  <div class="card">
+    <h3>💰 Live Profit - <span id="lpStatus">Waiting to Buy...</span> <span class="badge grey" id="lpPanicBadge">WAITING</span></h3>
+    <div class="sub">Only active when bot has bought • Updates every 15s • Helps you decide when to press Panic Sell • Does not trade by itself</div>
+    <div class="grid">
+      <div class="stat" id="lpGrossCard"><div class="l">Gross Profit (Before Fees)</div><div class="v" id="lpGross">-</div><div class="s" id="lpGrossPct">-</div></div>
+      <div class="stat" id="lpFeeCard"><div class="l">Fees (Buy + Sell @ 0.10%)</div><div class="v" id="lpFees">-</div><div class="s" id="lpFeeStatus">-</div></div>
+      <div class="stat" id="lpNetCard"><div class="l">Net Live Profit (After Fees)</div><div class="v" id="lpNet">-</div><div class="s" id="lpNetPct">-</div></div>
+      <div class="stat" id="lpTotalCard"><div class="l">Total Amount % - $5.50 Now Worth</div><div class="v" id="lpTotal">-</div><div class="s" id="lpTotalPct">-</div></div>
+      <div class="stat" id="lpDayCard"><div class="l">Today Total (Closed + Live)</div><div class="v" id="lpDay">-</div><div class="s" id="lpDayStatus">-</div></div>
+      <div class="stat" id="lpSlCard"><div class="l">Distance To Auto SL</div><div class="v" id="lpSl">-</div><div class="s" id="lpSlDetail">-</div></div>
+      <div class="stat" id="lpCoverCard" style="grid-column:span 2;"><div class="l">Price To Cover Fees / Day Loss</div><div class="v" id="lpCover" style="font-size:1rem;">-</div><div class="s" id="lpDetail">-</div></div>
+      <div class="stat" id="lpPanicCard"><div class="l">Panic Helper</div><div class="v" id="lpPanicText" style="font-size:1rem;">-</div><div class="s">🟢 HOLD = in profit &nbsp; 🟡 WATCH = small loss, far from SL &nbsp; 🔴 THINK PANIC = close to SL</div></div>
+    </div>
+  </div>
+
+  <!-- NEW BOX 2: REAL ACCOUNT BALANCE - READ ONLY -->
+  <div class="card">
+    <h3>🏦 Real Account Balance <span class="badge grey" id="balNet">-</span></h3>
+    <div class="sub" id="balNote">Read only - just display, does not move money, does not change trade amount</div>
+    <div class="grid">
+      <div class="stat blue"><div class="l">Real USDT</div><div class="v" id="balUsdt">-</div><div class="s" id="balUsdtDetail">-</div></div>
+      <div class="stat violet"><div class="l">Real SOL</div><div class="v" id="balSol">-</div><div class="s" id="balSolValue">-</div></div>
+      <div class="stat green"><div class="l">Real Total Value (USDT + SOL)</div><div class="v" id="balTotal">-</div><div class="s">Your real wallet value right now</div></div>
+      <div class="stat"><div class="l">Trade Setting (Not Wallet)</div><div class="v" id="balTradeAmt">-</div><div class="s">Bot uses this amount per trade</div></div>
+    </div>
+  </div>
+
   <div class="card">
     <h3>📊 Live Snapshot</h3>
     <div class="grid">
@@ -112,7 +142,6 @@
     <div class="sub" style="margin:10px 0 0;" id="autoLossLine">Auto Daily Loss Limit: - • Trend Filter: Price &gt; 10m avg (last 20 polls)</div>
   </div>
 
-  <!-- NEW: Daily + Weekly Reports - matches new backend -->
   <div class="row2">
     <div class="card">
       <h3>📅 Daily Report</h3>
@@ -171,7 +200,6 @@
     if(!baseUrl || !secret){ setMsg('Enter both Backend URL and ADMIN_SECRET.', true); return null; }
     return { baseUrl, secret };
   }
-  // FIXED: Auto Daily Loss preview = Amount x 8% - matches backend calcDailyLossFromAmount()
   function updateAutoLossPreview(){
     const amt = Number(document.getElementById('tradeAmountInput').value || 0);
     const auto = Number((amt * 0.08).toFixed(2));
@@ -194,6 +222,7 @@
   }
   function fmt(v, d=4){ return v==null||v==='' ? '-' : '$'+Number(v).toFixed(d); }
   function fmtPnl(v){ const n=Number(v||0); return (n>=0?'+$':'-$')+Math.abs(n).toFixed(4); }
+  function fmtPct(v){ const n=Number(v||0); return (n>=0?'+':'')+n.toFixed(2)+'%'; }
   function isTyping(){ const a=document.activeElement; return a && (a.tagName==='INPUT' || a.tagName==='SELECT' || a.tagName==='TEXTAREA'); }
 
   async function loadDashboard(){
@@ -206,7 +235,6 @@
 
       document.getElementById('mPrice').textContent = fmt(d.market.lastPrice);
       document.getElementById('mAvg').textContent = 'Avg (10m): ' + fmt(d.market.rollingAvg);
-      // REMOVED: Buy Target -2% - backend now returns null, show No Dip
       document.getElementById('mBuyTarget').textContent = 'No Dip';
       document.getElementById('mRef').textContent = 'Ref (display only): ' + fmt(d.market.referencePrice);
       document.getElementById('mTradeAmt').textContent = '$' + d.config.tradeAmountUsdt;
@@ -231,13 +259,15 @@
       document.getElementById('mTrailSub').textContent = inPos ? (d.position.trailingActive ? '● TRAILING ACTIVE' : '○ Waiting +1.2%') : '-';
       document.getElementById('mTPSL').textContent = inPos ? `${fmt(d.position.takeProfitPrice,2)} / ${fmt(d.position.stopLossPrice,2)}` : '-';
 
-      // FIXED: Show backend Auto Daily Loss (8% of Dashboard Amount) - not old $0.45
       document.getElementById('autoLossLine').textContent = `Sell Fast V5: NO DIP • Buy on Bounce + 10m Trend • TP +2.2% (backup) • SL -1.0% • Trail 1.2% / 0.5% • Cooldown 5m WATCH • Auto Daily Loss Limit: $${Number(d.config.maxDailyLossUsdt||0).toFixed(2)} (8% of $${Number(d.config.tradeAmountUsdt||0).toFixed(2)}) • Trend Filter: Price > 10m avg (last 20 polls, 30s each) • Hybrid Buy: min(Dashboard, Free x 0.99)`;
 
       const banner=document.getElementById('posBanner');
       if(inPos){
-        banner.className='pos-banner';
-        banner.innerHTML=`<span><b>Holding ${d.position.purchasedQty} SOL</b> @ ${fmt(d.position.entryPrice)} • Peak ${fmt(d.position.highestPriceSinceEntry)}</span><span>${d.position.trailingActive?'Trailing ON':'Trail waiting +1.2%'}</span>`;
+        const lpTmp = d.liveProfit;
+        const isRed = lpTmp && lpTmp.panicLevel === 'RED';
+        const isAmber = lpTmp && lpTmp.panicLevel === 'YELLOW';
+        banner.className = 'pos-banner' + (isRed ? ' red' : isAmber ? ' amber' : '');
+        banner.innerHTML=`<span><b>Holding ${d.position.purchasedQty} SOL</b> @ ${fmt(d.position.entryPrice)} • Peak ${fmt(d.position.highestPriceSinceEntry)} • Live Net: ${lpTmp ? fmtPnl(lpTmp.netProfitUsdt) + ' (' + fmtPct(lpTmp.netPercent) + ')' : '-'}</span><span>${d.position.trailingActive?'Trailing ON':'Trail waiting +1.2%'}</span>`;
       } else {
         banner.className='pos-banner flat';
         banner.innerHTML=`<span>No open position — waiting for Bounce + Price > 10m avg — No Dip</span><span>No Dip</span>`;
@@ -245,12 +275,69 @@
 
       if(!isTyping()){
         document.getElementById('tradeAmountInput').value = d.config.tradeAmountUsdt;
-        // FIXED: Max Loss is AUTO from backend, not typed - keep it in sync, don't let user edit it
         document.getElementById('maxLossInput').value = d.config.maxDailyLossUsdt;
         document.getElementById('bounceInput').checked = !!d.config.requireBounceTick;
       }
 
-      // NEW: Daily Report - from backend dailyReport
+      // --- NEW: LIVE PROFIT - ALWAYS VISIBLE, from backend liveProfit ---
+      const lp = d.liveProfit;
+      if(lp){
+        document.getElementById('lpStatus').textContent = lp.statusText || (lp.status === 'HOLDING' ? 'Holding...' : 'Waiting to Buy...');
+        const badge = document.getElementById('lpPanicBadge');
+        badge.textContent = lp.panicLevel || 'WAITING';
+        badge.className = 'badge ' + (lp.panicLevel === 'GREEN' ? 'win' : lp.panicLevel === 'RED' ? 'loss' : lp.panicLevel === 'YELLOW' ? 'amber' : 'grey');
+        document.getElementById('lpPanicText').textContent = lp.panicText || '-';
+        document.getElementById('lpPanicCard').className = 'stat ' + (lp.panicLevel === 'GREEN' ? 'green' : lp.panicLevel === 'RED' ? 'red' : lp.panicLevel === 'YELLOW' ? 'amber' : '');
+        // Gross
+        document.getElementById('lpGross').textContent = fmtPnl(lp.grossProfitUsdt);
+        document.getElementById('lpGross').className = 'v ' + (lp.grossProfitUsdt >= 0 ? 'win' : 'loss');
+        document.getElementById('lpGrossPct').textContent = lp.status === 'WAITING' ? 'No position - $0.00' : `Price move: ${fmtPct(lp.grossPercent)} • Entry ${fmt(lp.entryPrice)} → Now ${fmt(lp.currentPrice)}`;
+        document.getElementById('lpGrossCard').className = 'stat ' + (lp.status === 'WAITING' ? '' : lp.grossProfitUsdt >= 0 ? 'green' : 'red');
+        // Fees
+        document.getElementById('lpFees').textContent = '-$' + Number(lp.feesUsdt || 0).toFixed(4);
+        document.getElementById('lpFeeStatus').textContent = lp.status === 'WAITING' ? 'No fees yet' : (lp.feeCovered ? '✅ FEES COVERED' : `❌ Need +$${Number(lp.needToCoverFeesUsdt).toFixed(4)} more • Price must hit ${fmt(lp.priceToCoverFees)}`);
+        document.getElementById('lpFeeStatus').style.color = lp.feeCovered ? '#4ade80' : '#f87171';
+        // Net
+        document.getElementById('lpNet').textContent = fmtPnl(lp.netProfitUsdt);
+        document.getElementById('lpNet').className = 'v ' + (lp.netProfitUsdt >= 0 ? 'win' : 'loss');
+        document.getElementById('lpNetPct').textContent = lp.status === 'WAITING' ? 'No position' : `After fees: ${fmtPct(lp.netPercent)} • ${lp.feeCovered ? 'Pure profit now' : 'Still paying fees'}`;
+        document.getElementById('lpNetCard').className = 'stat ' + (lp.status === 'WAITING' ? '' : lp.netProfitUsdt >= 0 ? 'green' : 'red');
+        // Total Amount %
+        document.getElementById('lpTotal').textContent = lp.status === 'WAITING' ? '$' + Number(d.config.tradeAmountUsdt).toFixed(2) : '$' + Number(lp.currentValue).toFixed(4);
+        document.getElementById('lpTotalPct').textContent = lp.status === 'WAITING' ? `Waiting - $${Number(d.config.tradeAmountUsdt).toFixed(2)} ready to buy` : `Your $${Number(lp.buyValue).toFixed(2)} is now $${Number(lp.currentValue).toFixed(4)} = ${fmtPct(lp.totalAmountPercent)} • Qty ${lp.qty}`;
+        document.getElementById('lpTotalCard').className = 'stat ' + (lp.status === 'WAITING' ? '' : lp.totalAmountPercent >= 0 ? 'green' : 'red');
+        // Today Total
+        document.getElementById('lpDay').textContent = fmtPnl(lp.combinedWithDay);
+        document.getElementById('lpDay').className = 'v ' + (lp.combinedWithDay >= 0 ? 'win' : 'loss');
+        document.getElementById('lpDayStatus').textContent = lp.dailyPnlClosed >= 0 ? `No loss today • Closed: ${fmtPnl(lp.dailyPnlClosed)}` : (lp.dayLossCovered ? `✅ DAY LOSS COVERED • Closed was ${fmtPnl(lp.dailyPnlClosed)}` : `❌ Day loss not covered • Closed: ${fmtPnl(lp.dailyPnlClosed)} • Need +$${Number(lp.needToCoverDayLossUsdt).toFixed(4)} more • Price must hit ${fmt(lp.priceToCoverDayLoss)}`);
+        document.getElementById('lpDayCard').className = 'stat ' + (lp.combinedWithDay >= 0 ? 'green' : 'red');
+        // SL Distance
+        if(lp.status === 'WAITING'){
+          document.getElementById('lpSl').textContent = '-';
+          document.getElementById('lpSlDetail').textContent = 'No position - no SL';
+          document.getElementById('lpCover').textContent = 'Waiting for next buy';
+          document.getElementById('lpDetail').textContent = `Waiting • Daily Closed PnL: ${fmtPnl(lp.dailyPnlClosed)}`;
+        } else {
+          document.getElementById('lpSl').textContent = `$${Number(lp.distanceToSlUsdt).toFixed(4)} / ${fmtPct(lp.distanceToSlPercent)} away`;
+          document.getElementById('lpSlDetail').textContent = `Now ${fmt(lp.currentPrice)} • SL ${fmt(lp.stopLossPrice)} • TP ${fmt(lp.takeProfitPrice)}`;
+          document.getElementById('lpCover').textContent = lp.feeCovered ? `Fees ✅ Covered • ${lp.dayLossCovered ? 'Day Loss ✅ Covered' : 'Day Loss ❌ - Price must hit ' + fmt(lp.priceToCoverDayLoss)}` : `Fees ❌ - Price must hit ${fmt(lp.priceToCoverFees)} • Day Loss - Price must hit ${fmt(lp.priceToCoverDayLoss)}`;
+          document.getElementById('lpDetail').textContent = `Buy: $${Number(lp.buyValue).toFixed(4)} • Gross: $${Number(lp.grossProfitUsdt).toFixed(4)} - Fees: $${Number(lp.feesUsdt).toFixed(4)} = Net: $${Number(lp.netProfitUsdt).toFixed(4)} • + Closed Today: $${Number(lp.dailyPnlClosed).toFixed(4)} = Today Total: $${Number(lp.combinedWithDay).toFixed(4)}`;
+        }
+      }
+
+      // --- NEW: REAL ACCOUNT BALANCE - from backend accountBalance ---
+      const b = d.accountBalance;
+      if(b){
+        document.getElementById('balNet').textContent = b.network;
+        document.getElementById('balNote').textContent = (b.note || '') + (b.available ? '' : ' - Check API key reading permission');
+        document.getElementById('balUsdt').textContent = '$' + Number(b.usdtTotal || 0).toFixed(4);
+        document.getElementById('balUsdtDetail').textContent = `Free: $${Number(b.usdtFree || 0).toFixed(4)} • Locked: $${Number(b.usdtLocked || 0).toFixed(4)}`;
+        document.getElementById('balSol').textContent = Number(b.solTotal || 0).toFixed(4) + ' SOL';
+        document.getElementById('balSolValue').textContent = `Value: $${Number(b.solValueUsdt || 0).toFixed(4)} @ ${fmt(b.solPrice)}`;
+        document.getElementById('balTotal').textContent = '$' + Number(b.totalValueUsdt || 0).toFixed(4);
+        document.getElementById('balTradeAmt').textContent = '$' + Number(d.config.tradeAmountUsdt).toFixed(2);
+      }
+
       if(d.dailyReport){
         const dr=d.dailyReport;
         document.getElementById('dailyDate').textContent = dr.date || 'Today';
@@ -260,7 +347,6 @@
         document.getElementById('dailyVerdict').textContent = dr.verdict || '';
         document.getElementById('dailyBreakdown').textContent = `Trades: ${dr.trades} • Wins: ${dr.wins} • Losses: ${dr.losses} • Win Rate: ${dr.winRate}% • Gross Win: $${dr.grossWin} • Gross Loss: $${dr.grossLoss}`;
       }
-      // NEW: Weekly Report - from backend weeklyReport
       if(d.weeklyReport){
         const wr=d.weeklyReport;
         const s=wr.summary || {};
@@ -294,7 +380,6 @@
   async function updateConfig(){
     const tradeAmountUsdt=Number(document.getElementById('tradeAmountInput').value);
     const requireBounceTick=document.getElementById('bounceInput').checked;
-    // FIXED: Do NOT send maxDailyLossUsdt - backend auto-calculates it as Amount x 8%. Sending it was ignored and confused users.
     try{ const r=await apiFetch('/api/admin/config','POST',{tradeAmountUsdt,requireBounceTick}); setMsg(r.message||'Config updated'); await loadDashboard(); }catch(e){ setMsg(e.message,true); }
   }
   async function panicSellConfirm(){ if(!confirm('Sell open SOL position immediately at market?')) return; await callAction('/api/admin/panic-sell'); }
