@@ -47,6 +47,11 @@
     .pos-banner.flat { background:rgba(148,163,184,.08); border-color:#334155; }
     .pos-banner.red { background:linear-gradient(90deg, rgba(239,68,68,.15), rgba(239,68,68,.05)); border-color:rgba(239,68,68,.35); }
     .pos-banner.amber { background:linear-gradient(90deg, rgba(245,158,11,.15), rgba(245,158,11,.05)); border-color:rgba(245,158,11,.35); }
+    /* NEW: ADAPTIVE MODE BANNER */
+    .adaptive-banner { display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; align-items:center; border-radius:14px; padding:12px 14px; margin-bottom:12px; border:1px solid rgba(34,197,94,.35); background:linear-gradient(90deg, rgba(34,197,94,.15), rgba(34,197,94,.05)); }
+    .adaptive-banner.careful { border-color:rgba(245,158,11,.45); background:linear-gradient(90deg, rgba(245,158,11,.18), rgba(245,158,11,.05)); }
+    .adaptive-banner .big { font-size:1.05rem; font-weight:900; }
+    .adaptive-banner .small { font-size:0.82rem; color:var(--muted); }
     table { width:100%; border-collapse:collapse; font-size:0.85rem; min-width:640px; }
     th, td { text-align:left; padding:9px 8px; border-bottom:1px solid #1e293b; white-space:nowrap; }
     th { color:var(--muted); font-size:0.72rem; letter-spacing:.06em; text-transform:uppercase; }
@@ -65,7 +70,7 @@
   <div class="top">
     <div>
       <h1>SOL/USDT <span>Bot Console</span></h1>
-      <p>Live control • Binance Testnet • Lagos (WAT) • 24/7 - No Sleep • Auto-refresh 15s • Sell Fast V5 • No Dip • Bounce + 10m Trend</p>
+      <p>Live control • Binance Testnet • Lagos (WAT) • 24/7 - No Sleep • Auto-refresh 15s • Sell Fast V5 • No Dip • Bounce + Adaptive 10m / 30m Trend</p>
     </div>
     <div class="pill"><span id="liveDot" class="dot"></span><span id="pillStatus">Not connected</span></div>
   </div>
@@ -94,8 +99,11 @@
       <div><label>Bounce Filter</label><div class="toggle"><input id="bounceInput" type="checkbox" checked /> <span>Require bounce tick</span></div></div>
       <button class="b-blue" onclick="updateConfig()">Save Amount & Risk</button>
     </div>
-    <div class="sub" style="margin:10px 0 0;">Sell Fast V5 • NO DIP • Buy on Bounce + 10m Trend • TP +2.2% (backup) • SL -1.0% • Trail Start +1.2% • Trail Pullback 0.5% • 1 Win (+$0.110) covers 1.6 Losses (-$0.066) • Cooldown 5m WATCH • Trend Filter: ON • Price must be &gt; 10m avg (last 20 polls, 30s each) • 30s poll • Max 4 losses in a row • Unlimited trades 24/7</div>
+    <div class="sub" style="margin:10px 0 0;">Sell Fast V5 • NO DIP • Buy on Bounce + Adaptive Trend • TP +2.2% (backup) • SL -1.0% • Trail Start +1.2% • Trail Pullback 0.5% • 1 Win (+$0.110) covers 1.6 Losses (-$0.066) • Cooldown 5m WATCH • Trend Filter: ADAPTIVE • WIN = 10m FAST (last 20 polls) • LOSS = 30m CAREFUL (last 60 polls) • 30s poll • Max 4 losses in a row • Unlimited trades 24/7</div>
   </div>
+
+  <!-- NEW: ADAPTIVE MODE BANNER - ALWAYS VISIBLE -->
+  <div id="adaptiveBanner" class="adaptive-banner"><span class="big" id="adaptiveTitle">🧠 MODE: 10m FAST</span><span class="small" id="adaptiveSub">Win = stay fast • Loss = switch to 30m careful</span></div>
 
   <div id="posBanner" class="pos-banner flat"><span>No open position</span><span>-</span></div>
 
@@ -132,14 +140,16 @@
     <div class="grid">
       <div class="stat blue"><div class="l">SOL Price</div><div class="v" id="mPrice">-</div><div class="s" id="mAvg">Avg (10m): -</div></div>
       <div class="stat violet"><div class="l">Buy Trigger - No Dip</div><div class="v" id="mBuyTarget">No Dip</div><div class="s" id="mRef">Ref: -</div></div>
+      <div class="stat" id="adaptiveStatCard"><div class="l">Adaptive Mode</div><div class="v" id="mAdaptive">-</div><div class="s" id="mAdaptiveSub">Last trade: -</div></div>
       <div class="stat"><div class="l">Trade Size - Hybrid</div><div class="v" id="mTradeAmt">-</div><div class="s">min(Dashboard, Free x 0.99)</div></div>
       <div class="stat"><div class="l">Trades Today</div><div class="v" id="mTrades">-</div><div class="s" id="mWL">W:0 L:0</div></div>
       <div class="stat" id="pnlCard"><div class="l">Daily Net PnL</div><div class="v" id="mPnl">-</div><div class="s" id="mCooldown">Cooldown: -</div></div>
       <div class="stat"><div class="l">In Position</div><div class="v" id="mPos">-</div><div class="s" id="mEntry">Entry: -</div></div>
       <div class="stat"><div class="l">Peak / Trail</div><div class="v" id="mTrail">-</div><div class="s" id="mTrailSub">-</div></div>
       <div class="stat"><div class="l">Hard TP / SL</div><div class="v" id="mTPSL">-</div><div class="s">+2.2% / -1.0% from ACTUAL fill • Trail 1.2% / 0.5%</div></div>
+      <div class="stat"><div class="l">30m Avg (Careful)</div><div class="v" id="mAvg30">-</div><div class="s">Used only after a LOSS</div></div>
     </div>
-    <div class="sub" style="margin:10px 0 0;" id="autoLossLine">Auto Daily Loss Limit: - • Trend Filter: Price &gt; 10m avg (last 20 polls)</div>
+    <div class="sub" style="margin:10px 0 0;" id="autoLossLine">Auto Daily Loss Limit: - • Trend Filter: Adaptive 10m / 30m</div>
   </div>
 
   <div class="row2">
@@ -230,11 +240,26 @@
       const d=await apiFetch('/api/admin/dashboard');
       const pill=document.getElementById('pillStatus');
       const dot=document.getElementById('liveDot');
-      pill.textContent = `${d.status} • ${d.network==='BINANCE_LIVE'?'LIVE': d.network==='BINANCE_TESTNET'?'TESTNET':d.network} • ${d.market.dateWAT||''} • 24/7 • Sell Fast V5 • No Dip • 10m Trend`;
+      const adaptiveLabel = d.config.adaptiveLabel || (d.config.adaptiveMode === 'CAREFUL_30M' ? '30m CAREFUL' : '10m FAST');
+      pill.textContent = `${d.status} • ${d.network==='BINANCE_LIVE'?'LIVE': d.network==='BINANCE_TESTNET'?'TESTNET':d.network} • ${d.market.dateWAT||''} • 24/7 • Sell Fast V5 • No Dip • ${adaptiveLabel}`;
       dot.className = 'dot ' + (d.status==='RUNNING' ? '' : 'paused');
 
+      // NEW: ADAPTIVE BANNER - top, always visible
+      const isCareful = (d.config.adaptiveMode === 'CAREFUL_30M');
+      const bannerA = document.getElementById('adaptiveBanner');
+      bannerA.className = 'adaptive-banner' + (isCareful ? ' careful' : '');
+      document.getElementById('adaptiveTitle').textContent = isCareful ? '🟡 MODE: 30m CAREFUL - Watching carefully' : '🟢 MODE: 10m FAST - Following wins';
+      document.getElementById('adaptiveSub').textContent = isCareful
+        ? `Last trade was a LOSS • Bot waits for price > 30m avg (${fmt(d.market.rollingAvg30m)}) • Fewer, safer buys`
+        : `Last trade: ${d.config.lastTradeOutcome || 'None yet / New day'} • Bot buys if price > 10m avg (${fmt(d.market.rollingAvg10m)}) • Fast buys`;
+      document.getElementById('mAdaptive').textContent = adaptiveLabel;
+      document.getElementById('mAdaptive').className = 'v ' + (isCareful ? 'loss' : 'win');
+      document.getElementById('mAdaptiveSub').textContent = 'Last trade: ' + (d.config.lastTradeOutcome || 'None yet');
+      document.getElementById('adaptiveStatCard').className = 'stat ' + (isCareful ? 'amber' : 'green');
+
       document.getElementById('mPrice').textContent = fmt(d.market.lastPrice);
-      document.getElementById('mAvg').textContent = 'Avg (10m): ' + fmt(d.market.rollingAvg);
+      document.getElementById('mAvg').textContent = 'Avg (10m): ' + fmt(d.market.rollingAvg10m ?? d.market.rollingAvg);
+      document.getElementById('mAvg30').textContent = fmt(d.market.rollingAvg30m);
       document.getElementById('mBuyTarget').textContent = 'No Dip';
       document.getElementById('mRef').textContent = 'Ref (display only): ' + fmt(d.market.referencePrice);
       document.getElementById('mTradeAmt').textContent = '$' + d.config.tradeAmountUsdt;
@@ -259,7 +284,7 @@
       document.getElementById('mTrailSub').textContent = inPos ? (d.position.trailingActive ? '● TRAILING ACTIVE' : '○ Waiting +1.2%') : '-';
       document.getElementById('mTPSL').textContent = inPos ? `${fmt(d.position.takeProfitPrice,2)} / ${fmt(d.position.stopLossPrice,2)}` : '-';
 
-      document.getElementById('autoLossLine').textContent = `Sell Fast V5: NO DIP • Buy on Bounce + 10m Trend • TP +2.2% (backup) • SL -1.0% • Trail 1.2% / 0.5% • Cooldown 5m WATCH • Auto Daily Loss Limit: $${Number(d.config.maxDailyLossUsdt||0).toFixed(2)} (8% of $${Number(d.config.tradeAmountUsdt||0).toFixed(2)}) • Trend Filter: Price > 10m avg (last 20 polls, 30s each) • Hybrid Buy: min(Dashboard, Free x 0.99)`;
+      document.getElementById('autoLossLine').textContent = `Sell Fast V5: NO DIP • Buy on Bounce + Adaptive ${adaptiveLabel} • TP +2.2% (backup) • SL -1.0% • Trail 1.2% / 0.5% • Cooldown 5m WATCH • Auto Daily Loss Limit: $${Number(d.config.maxDailyLossUsdt||0).toFixed(2)} (8% of $${Number(d.config.tradeAmountUsdt||0).toFixed(2)}) • Trend Filter: Price > ${adaptiveLabel} avg • Hybrid Buy: min(Dashboard, Free x 0.99)`;
 
       const banner=document.getElementById('posBanner');
       if(inPos){
@@ -270,7 +295,7 @@
         banner.innerHTML=`<span><b>Holding ${d.position.purchasedQty} SOL</b> @ ${fmt(d.position.entryPrice)} • Peak ${fmt(d.position.highestPriceSinceEntry)} • Live Net: ${lpTmp ? fmtPnl(lpTmp.netProfitUsdt) + ' (' + fmtPct(lpTmp.netPercent) + ')' : '-'}</span><span>${d.position.trailingActive?'Trailing ON':'Trail waiting +1.2%'}</span>`;
       } else {
         banner.className='pos-banner flat';
-        banner.innerHTML=`<span>No open position — waiting for Bounce + Price > 10m avg — No Dip</span><span>No Dip</span>`;
+        banner.innerHTML=`<span>No open position — waiting for Bounce + Price > ${adaptiveLabel} avg — No Dip</span><span>No Dip</span>`;
       }
 
       if(!isTyping()){
@@ -288,30 +313,24 @@
         badge.className = 'badge ' + (lp.panicLevel === 'GREEN' ? 'win' : lp.panicLevel === 'RED' ? 'loss' : lp.panicLevel === 'YELLOW' ? 'amber' : 'grey');
         document.getElementById('lpPanicText').textContent = lp.panicText || '-';
         document.getElementById('lpPanicCard').className = 'stat ' + (lp.panicLevel === 'GREEN' ? 'green' : lp.panicLevel === 'RED' ? 'red' : lp.panicLevel === 'YELLOW' ? 'amber' : '');
-        // Gross
         document.getElementById('lpGross').textContent = fmtPnl(lp.grossProfitUsdt);
         document.getElementById('lpGross').className = 'v ' + (lp.grossProfitUsdt >= 0 ? 'win' : 'loss');
         document.getElementById('lpGrossPct').textContent = lp.status === 'WAITING' ? 'No position - $0.00' : `Price move: ${fmtPct(lp.grossPercent)} • Entry ${fmt(lp.entryPrice)} → Now ${fmt(lp.currentPrice)}`;
         document.getElementById('lpGrossCard').className = 'stat ' + (lp.status === 'WAITING' ? '' : lp.grossProfitUsdt >= 0 ? 'green' : 'red');
-        // Fees
         document.getElementById('lpFees').textContent = '-$' + Number(lp.feesUsdt || 0).toFixed(4);
         document.getElementById('lpFeeStatus').textContent = lp.status === 'WAITING' ? 'No fees yet' : (lp.feeCovered ? '✅ FEES COVERED' : `❌ Need +$${Number(lp.needToCoverFeesUsdt).toFixed(4)} more • Price must hit ${fmt(lp.priceToCoverFees)}`);
         document.getElementById('lpFeeStatus').style.color = lp.feeCovered ? '#4ade80' : '#f87171';
-        // Net
         document.getElementById('lpNet').textContent = fmtPnl(lp.netProfitUsdt);
         document.getElementById('lpNet').className = 'v ' + (lp.netProfitUsdt >= 0 ? 'win' : 'loss');
         document.getElementById('lpNetPct').textContent = lp.status === 'WAITING' ? 'No position' : `After fees: ${fmtPct(lp.netPercent)} • ${lp.feeCovered ? 'Pure profit now' : 'Still paying fees'}`;
         document.getElementById('lpNetCard').className = 'stat ' + (lp.status === 'WAITING' ? '' : lp.netProfitUsdt >= 0 ? 'green' : 'red');
-        // Total Amount %
         document.getElementById('lpTotal').textContent = lp.status === 'WAITING' ? '$' + Number(d.config.tradeAmountUsdt).toFixed(2) : '$' + Number(lp.currentValue).toFixed(4);
         document.getElementById('lpTotalPct').textContent = lp.status === 'WAITING' ? `Waiting - $${Number(d.config.tradeAmountUsdt).toFixed(2)} ready to buy` : `Your $${Number(lp.buyValue).toFixed(2)} is now $${Number(lp.currentValue).toFixed(4)} = ${fmtPct(lp.totalAmountPercent)} • Qty ${lp.qty}`;
         document.getElementById('lpTotalCard').className = 'stat ' + (lp.status === 'WAITING' ? '' : lp.totalAmountPercent >= 0 ? 'green' : 'red');
-        // Today Total
         document.getElementById('lpDay').textContent = fmtPnl(lp.combinedWithDay);
         document.getElementById('lpDay').className = 'v ' + (lp.combinedWithDay >= 0 ? 'win' : 'loss');
         document.getElementById('lpDayStatus').textContent = lp.dailyPnlClosed >= 0 ? `No loss today • Closed: ${fmtPnl(lp.dailyPnlClosed)}` : (lp.dayLossCovered ? `✅ DAY LOSS COVERED • Closed was ${fmtPnl(lp.dailyPnlClosed)}` : `❌ Day loss not covered • Closed: ${fmtPnl(lp.dailyPnlClosed)} • Need +$${Number(lp.needToCoverDayLossUsdt).toFixed(4)} more • Price must hit ${fmt(lp.priceToCoverDayLoss)}`);
         document.getElementById('lpDayCard').className = 'stat ' + (lp.combinedWithDay >= 0 ? 'green' : 'red');
-        // SL Distance
         if(lp.status === 'WAITING'){
           document.getElementById('lpSl').textContent = '-';
           document.getElementById('lpSlDetail').textContent = 'No position - no SL';
@@ -370,7 +389,7 @@
         tbody.innerHTML=d.trades.map(t=>`<tr><td>${t.tradeNumber ?? t.id}</td><td>${t.date||''}</td><td>${fmt(t.entryPrice)}</td><td>${fmt(t.exitPrice)}</td><td>${t.qty}</td><td class="${t.pnlUsdt>=0?'win':'loss'}">${t.pnlUsdt>=0?'+':''}$${Number(t.pnlUsdt).toFixed(4)}</td><td><span class="badge ${t.outcome==='WIN'?'win':'loss'}">${t.outcome}</span></td><td>${t.reason||''}</td></tr>`).join('');
       }
       document.getElementById('logsBox').textContent=(d.logs||[]).join('\n')||'No logs yet.';
-      setMsg(`Synced at ${new Date().toLocaleTimeString()} • ${d.network} • 24/7 • Sell Fast V5 • No Dip • 10m Trend • Auto Daily Loss $${Number(d.config.maxDailyLossUsdt||0).toFixed(2)} (8%)`);
+      setMsg(`Synced at ${new Date().toLocaleTimeString()} • ${d.network} • 24/7 • Sell Fast V5 • No Dip • Adaptive ${adaptiveLabel} • Auto Daily Loss $${Number(d.config.maxDailyLossUsdt||0).toFixed(2)} (8%)`);
     }catch(e){ setMsg(e.message, true); }
   }
 
